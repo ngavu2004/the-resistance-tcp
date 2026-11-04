@@ -242,12 +242,9 @@ fn handle_player(stream: TcpStream, id: i32, tx: mpsc::Sender<(i32, String)>) {
 
 fn main() -> std::io::Result<()> {
     // ==== INITIALIZE GAME ====
-    let socket_path = "127.0.0.1:5000";
+    let tcp_endpoint = "127.0.0.1:5000";
 
-    // Remove old socket if it exists
-    let _ = std::fs::remove_file(socket_path);
-
-    let listener = TcpListener::bind(socket_path)?;
+    let listener = TcpListener::bind(tcp_endpoint)?;
 
     // Get number of players
     let player_num: usize = loop {
