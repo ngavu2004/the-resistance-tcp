@@ -5,7 +5,7 @@ use std::io::{self, Read, Write};
 use std::thread;
 
 fn main() -> std::io::Result<()> {
-    let mut stream = TcpStream::connect("127.0.0.1:5000")?;
+    let mut stream = TcpStream::connect("0.0.0.0:50000")?;
 
     println!("Connected to game server!");
 

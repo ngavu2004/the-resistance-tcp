@@ -242,7 +242,7 @@ fn handle_player(stream: TcpStream, id: i32, tx: mpsc::Sender<(i32, String)>) {
 
 fn main() -> std::io::Result<()> {
     // ==== INITIALIZE GAME ====
-    let tcp_endpoint = "127.0.0.1:5000";
+    let tcp_endpoint = "0.0.0.0:5000";
 
     let listener = TcpListener::bind(tcp_endpoint)?;
 
