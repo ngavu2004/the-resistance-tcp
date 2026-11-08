@@ -1,11 +1,8 @@
 # The resistance
 
-Run the server
-```shell
-cargo run --bin server
-```
+The game server is running on Digital Ocean
 
-Run the client
+Connect to the game
 ```shell
-cargo run --bin client client_name
+nc 201.79.40.73 5000
 ```
