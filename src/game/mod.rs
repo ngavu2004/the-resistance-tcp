@@ -142,16 +142,6 @@ impl Game {
             });
         }
 
-        thread::spawn(move || {
-            let mut input = String::new();
-
-            loop {
-                input.clear();
-                io::stdin().read_line(&mut input);
-                tx.send((-1, input.clone()));
-            }
-        });
-
         // ==== PHASE 1: ROLE ANNOUNCEMENT ====
 
         // Assign roles for player
@@ -237,6 +227,7 @@ impl Game {
                             }
                         },
                         Err(RecvError) => {
+                            println!("Error!");
                             self.send_message(Recipient::Everyone, &format!("Receive error!"));
                             break
                         }
