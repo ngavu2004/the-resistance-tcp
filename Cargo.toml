@@ -1,5 +1,6 @@
 [package]
 name = "the_resistance_custom_tcp"
+default-run = "the_resistance_custom_tcp"
 version = "0.1.0"
 edition = "2024"
 

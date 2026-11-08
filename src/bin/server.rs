@@ -295,14 +295,14 @@ fn main() -> std::io::Result<()> {
     // ==== PHASE 1: ROLE ANNOUCEMENT ====
     let role_messages: Vec<(i32, String)> = game.players.iter().map(|(id, player)| {
         let role_message = match player.special_role {
-        Some(role) => format!("Your role is {}.", role.as_string()),
-        None => match player.faction {
-            Some(faction) => format!("Your role is {}.", faction.as_string()),
-            None => panic!("Invalid faction!"),
-        },
-    };
+            Some(role) => format!("Your role is {}.", role.as_string()),
+            None => match player.faction {
+                Some(faction) => format!("Your role is {}.", faction.as_string()),
+                None => panic!("Invalid faction!"),
+            },
+        };
 
-    (*id, role_message)
+        (*id, role_message)
     }).collect();
 
     for (id, message) in role_messages {
