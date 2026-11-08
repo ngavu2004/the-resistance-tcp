@@ -210,9 +210,10 @@ impl Game {
             let mut picked_team_names = String::from("");
 
             for pick_team_attempt in 0..5 {
+                println!("1");
                 self.send_message(Recipient::Everyone, &format!("\nPick team attempt number {}. Leader: {}", pick_team_attempt+1, self.get_player_name(&leader).unwrap()));
                 self.send_message(Recipient::Id(leader), &format!("Hey leader, please enter a list of name for the team with format: 'name1,name2,name3'. Your options are: {}", self.get_all_players_names()));
-
+                println!("2");
                 loop {
                     match rx.recv() {
                         Ok((player_id, message)) => {
