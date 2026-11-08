@@ -237,7 +237,7 @@ impl Game {
                             }
                         },
                         Err(RecvError) => {
-                            self.send_message(Recipient::All, &format!("Receive error!"));
+                            self.send_message(Recipient::Everyone, &format!("Receive error!"));
                             break
                         }
                     }
