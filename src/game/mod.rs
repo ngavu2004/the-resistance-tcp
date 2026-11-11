@@ -250,9 +250,6 @@ impl Game {
                                 if message.contains("Skip") {
                                     break;
                                 }
-                                else {
-                                    continue;
-                                }
                             }
                             let m = format!("{}: {}", self.get_player_name(&player_id).unwrap(), &message);
                             self.send_message(Recipient::Everyone, &m);
