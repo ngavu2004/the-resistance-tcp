@@ -108,9 +108,6 @@ fn read_from_stream(stream: &TcpStream) -> Result<String> {
 
 fn player_listener(mut stream: TcpStream, tx: mpsc::Sender<PlayerRequest>, menu: Arc<Mutex<Menu>>) -> Result<()> {
     // get the game choice
-    loop {
-        
-    }
     let choice : String = loop {
         Menu::send_message(&mut stream, "Welcome to The Resistance menu. If you want to join a game, enter '1' then hit enter. If you want to start a game, enter '2' then hit enter.\n")?;
         let mut message : String = read_from_stream(&stream)?;
