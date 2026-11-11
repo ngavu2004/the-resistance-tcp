@@ -24,7 +24,7 @@ struct PlayerRequest{
 }
 
 impl Menu {
-    fn initialize_game(&mut self, player: Player, player_num: usize) -> Result<()> {
+    fn initialize_game(&mut self, mut player: Player, player_num: usize) -> Result<()> {
         // randomize an id till the id is not in the current_game_ids
         let mut rng = rand::rng();
         let mut id: i32 = 0;
@@ -35,6 +35,7 @@ impl Menu {
             }
         }
         self.current_game_ids.insert(id);
+        Menu::send_message(&mut player.stream, &format!("Your game code is {}. Please share this with other participants.", id));
 
         // create a chanel for the menu to talk with the game
         let (join_tx, join_rx) = mpsc::channel();
@@ -57,7 +58,7 @@ impl Menu {
                         assassin_id: -1, 
                         merlin_id: -1
                     };
-
+        
         // spawn a thread for the game
         thread::spawn(move || {
             game.start(join_rx)
@@ -122,7 +123,6 @@ fn player_listener(mut stream: TcpStream, tx: mpsc::Sender<PlayerRequest>, menu:
             Menu::send_message(&mut stream, "You chose 2\n")?;
             break message;
         } else {
-
             Menu::send_message(&mut stream, "Invalid choice. Please choose again!\n")?;
         }
     };
