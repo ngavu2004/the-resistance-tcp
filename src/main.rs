@@ -35,7 +35,7 @@ impl Menu {
             }
         }
         self.current_game_ids.insert(id);
-        Menu::send_message(&mut player.stream, &format!("Your game code is {}. Please share this with other participants.", id));
+        Menu::send_message(&mut player.stream, &format!("Your game code is {}. Please share this with other participants.\n", id));
 
         // create a chanel for the menu to talk with the game
         let (join_tx, join_rx) = mpsc::channel();
