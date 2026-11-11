@@ -66,9 +66,12 @@ impl Menu {
         Ok(())
     }
 
+    fn exist(&mut self, game_id: i32) -> bool {
+        self.current_game_ids.contains(&game_id)
+    }
+
     fn join_game(&mut self, player: Player, game_id: i32) -> Result<()> {
         // Get the game id
-
         for (id, game_tx) in &mut self.current_games {
             if (game_id == *id) {
                 game_tx.send(player);
@@ -119,6 +122,7 @@ fn player_listener(mut stream: TcpStream, tx: mpsc::Sender<PlayerRequest>, menu:
             Menu::send_message(&mut stream, "You chose 2\n")?;
             break message;
         } else {
+
             Menu::send_message(&mut stream, "Invalid choice. Please choose again!\n")?;
         }
     };
@@ -152,17 +156,34 @@ fn player_listener(mut stream: TcpStream, tx: mpsc::Sender<PlayerRequest>, menu:
         let mut shared_menu = menu.lock().unwrap();
         shared_menu.initialize_game(new_player, player_num);
     } else if choice == "1" {
+
         // Get the player name and create the player
         Menu::send_message(&mut stream, &format!("What's your name? "));
         let player_name = read_from_stream(&stream)?;
-
-        // get the game code
-        Menu::send_message(&mut stream, &format!("What's the game code? "));
-        let game_code : i32 = read_from_stream(&stream)?.trim().parse().unwrap();
+        let mut cloned_stream = stream.try_clone()?;
         let new_player = Player { id: 0, name: player_name, stream: stream, faction: None, special_role: None};
 
-        let mut shared_menu = menu.lock().unwrap();
-        shared_menu.join_game(new_player, game_code);
+        // get the game code
+        loop {
+            Menu::send_message(&mut cloned_stream, &format!("What's the game code? "));
+            let game_code : i32 = match read_from_stream(&cloned_stream)?.trim().parse() {
+                Ok(game_code) => game_code,
+                Err(err) => {
+                    Menu::send_message(&mut cloned_stream, &format!("The game code is not valid, please try again!\n"));
+                    continue
+                },
+            };
+            
+
+            let mut shared_menu = menu.lock().unwrap();
+            if (shared_menu.exist(game_code)) {
+                shared_menu.join_game(new_player, game_code);
+                break
+            } else {
+                Menu::send_message(&mut cloned_stream, &format!("The game code is not valid, please try again!\n"));
+            }
+        }
+        
     }
     
     Ok(())
