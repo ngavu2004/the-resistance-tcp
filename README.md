@@ -18,3 +18,8 @@ nc 201.79.40.73 5000
 
 5. Wait for everyone in the party to arrive so you can start the game.
 
+## Known vulnerability
+
+1. The port 3000 is exposed right now, im working to move it to nginx
+2. The tcp packet is non-encrypted
+3. There's a race condition to connect to a game even if it's is full in the game.
