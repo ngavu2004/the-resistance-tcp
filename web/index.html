@@ -22,7 +22,7 @@
 
     document.getElementById("connect").onclick = () => {
       socket = new WebSocket(
-          `ws://localhost:8080`
+          `ws://${window.location.hostname}:8080`
       );
 
       socket.onopen = () => {
