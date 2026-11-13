@@ -1,6 +1,6 @@
 # The resistance
 
-The game server is running on Digital Ocean. To play the game, simply open bash and connect to the Tcp server using netcat
+The game server is running on Digital Ocean. You can go to: http://201.79.40.73:3000/ to play the game or connect to the server through netcat like displayed below.
 
 1. Connect to the game
 ```shell
@@ -17,3 +17,4 @@ nc 201.79.40.73 5000
 ![alt text](readme_img/image3.png)
 
 5. Wait for everyone in the party to arrive so you can start the game.
+
