@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>The Resistance</title>
+</head>
+<body>
+  <h1>The Resistance</h1>
+
+  <button id="connect">Connect</button>
+  <pre id="messages"></pre>
+
+  <form id="form">
+    <input id="input" placeholder="Type your response">
+    <button type="submit">Send</button>
+  </form>
+
+  <script>
+    let socket;
+    const log = document.getElementById("messages");
+
+    document.getElementById("connect").onclick = () => {
+      socket = new WebSocket("ws://localhost:8080");
+
+      socket.onopen = () => {
+        log.textContent += "Connected!\n";
+      };
+
+      socket.onmessage = event => {
+        log.textContent += event.data;
+      };
+
+      socket.onclose = () => {
+        log.textContent += "\nDisconnected\n";
+      };
+    };
+
+    document.getElementById("form").onsubmit = event => {
+      event.preventDefault();
+
+      if (socket?.readyState !== WebSocket.OPEN) {
+        return;
+      }
+
+      const input = document.getElementById("input");
+
+      socket.send(input.value);
+      input.value = "";
+    };
+  </script>
+</body>
+</html>
