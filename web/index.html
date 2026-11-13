@@ -21,7 +21,11 @@
     const log = document.getElementById("messages");
 
     document.getElementById("connect").onclick = () => {
-      socket = new WebSocket("ws://201.79.40.73:8080");
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+
+      socket = new WebSocket(
+          `${protocol}//${window.location.host}/ws`
+      );
 
       socket.onopen = () => {
         log.textContent += "Connected!\n";
