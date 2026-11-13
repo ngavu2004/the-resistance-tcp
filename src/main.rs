@@ -6,21 +6,14 @@ use std::thread;
 use std::sync::mpsc::{self, RecvTimeoutError, Receiver};
 use std::collections::{HashSet, HashMap};
 use rand::{RngExt, rngs::ThreadRng};
-use crate::game::{Game, Player, GamePhase};
+use crate::game::{Game, Player, GamePhase, JoinRequest, JoinResult};
 use std::sync::{Arc, Mutex};
 
 mod game;
 
 struct Menu {
     current_game_ids: HashSet<i32>,
-    current_games: HashMap<i32, mpsc::Sender<Player>>,
-}
-
-struct PlayerRequest{
-    player: Player,
-    create_game: bool,
-    player_num: Option<usize>,
-    game_id: Option<i32>
+    current_games: HashMap<i32, mpsc::Sender<JoinRequest>>,
 }
 
 impl Menu {
@@ -71,19 +64,19 @@ impl Menu {
         self.current_game_ids.contains(&game_id)
     }
 
-    fn join_game(&mut self, player: Player, game_id: i32) -> Result<()> {
-        // Get the game id
-        for (id, game_tx) in &mut self.current_games {
-            if (game_id == *id) {
-                game_tx.send(player);
-                return Ok(());
-            }
+    fn join_game(&mut self, player: Player, game_id: i32) -> Result<Receiver<JoinResult>> {
+        let game_tx = self.current_games.get(&game_id).ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidInput, "Invalid game code")
+        })?;
+
+        let (tx, rx) = mpsc::channel::<JoinResult>();
+        if let Err(error) = game_tx.send(JoinRequest { player, tx }) {
+            error.0.tx.send(JoinResult::GameFull).map_err(|_| {
+                io::Error::new(io::ErrorKind::BrokenPipe, "Player disconnected")
+            })?;
         }
 
-        Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Invalid game code",
-            ))
+        Ok(rx)
     }
 
     fn send_message(stream: &mut TcpStream, message: &str) -> Result<()> {
@@ -110,7 +103,7 @@ fn read_from_stream(stream: &TcpStream) -> Result<String> {
     }
 }
 
-fn player_listener(mut stream: TcpStream, tx: mpsc::Sender<PlayerRequest>, menu: Arc<Mutex<Menu>>) -> Result<()> {
+fn player_listener(mut stream: TcpStream, menu: Arc<Mutex<Menu>>) -> Result<()> {
     // get the game choice
     let choice : String = loop {
         Menu::send_message(&mut stream, "Welcome to The Resistance menu. If you want to join a game, enter '1' then hit enter. If you want to start a game, enter '2' then hit enter.\n")?;
@@ -132,12 +125,17 @@ fn player_listener(mut stream: TcpStream, tx: mpsc::Sender<PlayerRequest>, menu:
         // Get number of players
         let player_num: usize = loop {
             let mut input = String::new();
-
             Menu::send_message(&mut stream, &format!("Please enter the number of player: "));
-            
+        
             let input = read_from_stream(&stream)?;
 
-            let number : usize = input.trim().parse().unwrap();
+            let number : usize = match input.trim().parse::<usize>() {
+                Ok(number) => number,
+                Err(error) => {
+                    Menu::send_message(&mut stream, &format!("Invalid number of player. Please try again!\n"));
+                    continue
+                },
+            };
 
             if number < 6 || number > 10 {
                 Menu::send_message(&mut stream, &format!("The game is only for 6 to 10 players. Please try again!\n"));
@@ -157,30 +155,73 @@ fn player_listener(mut stream: TcpStream, tx: mpsc::Sender<PlayerRequest>, menu:
         shared_menu.initialize_game(new_player, player_num);
     } else if choice == "1" {
 
-        // Get the player name and create the player
-        Menu::send_message(&mut stream, &format!("What's your name? "));
-        let player_name = read_from_stream(&stream)?;
+        // clone the stream
         let mut cloned_stream = stream.try_clone()?;
-        let new_player = Player { id: 0, name: player_name, stream: stream, faction: None, special_role: None};
 
-        // get the game code
-        loop {
-            Menu::send_message(&mut cloned_stream, &format!("What's the game code? "));
-            let game_code : i32 = match read_from_stream(&cloned_stream)?.trim().parse() {
-                Ok(game_code) => game_code,
-                Err(err) => {
-                    Menu::send_message(&mut cloned_stream, &format!("The game code is not valid, please try again!\n"));
-                    continue
-                },
+        'choose_game: loop {
+            // get the game code
+            let game_code: i32 = loop {
+                Menu::send_message(&mut cloned_stream, "What's the game code? ")?;
+                let input = read_from_stream(&cloned_stream)?;
+
+                match input.trim().parse::<i32>() {
+                    Ok(code) => break code,
+                    Err(_) => {
+                        Menu::send_message(
+                            &mut cloned_stream,
+                            "The game code is not valid, please try again!\n",
+                        )?;
+                    }
+                }
             };
-            
 
-            let mut shared_menu = menu.lock().unwrap();
-            if (shared_menu.exist(game_code)) {
-                shared_menu.join_game(new_player, game_code);
-                break
-            } else {
-                Menu::send_message(&mut cloned_stream, &format!("The game code is not valid, please try again!\n"));
+
+            loop {
+                // get player name and create new player object
+                let player_name = loop {
+                    Menu::send_message(&mut cloned_stream, "What's your name? ")?;
+                    match read_from_stream(&cloned_stream) {
+                        Ok((name)) => break name,
+                        Err(_) => {
+                            Menu::send_message(
+                                &mut cloned_stream,
+                                "Error happened, please try again!\n",
+                            )?;
+                        }
+                    }
+                };
+
+                let mut new_player = Player { id: 0, name: player_name, stream: stream.try_clone()?, faction: None, special_role: None};
+                let result = {
+                    let mut shared_menu = menu.lock().unwrap();
+                    shared_menu.join_game(new_player, game_code)
+                };
+
+                let rx = match result {
+                    Ok(rx) => rx,
+                    Err(err) if err.kind() == io::ErrorKind::InvalidInput => {
+                        Menu::send_message(
+                            &mut cloned_stream,
+                            "Invalid game code. Please try again.\n",
+                        )?;
+                        continue 'choose_game;
+                    }
+                    Err(err) => return Err(err),
+                };
+
+
+                match rx.recv().map_err(|_| {
+                    io::Error::new(io::ErrorKind::BrokenPipe, "Game stopped before replying")
+                })? {
+                    JoinResult::Joined => break 'choose_game,
+                    JoinResult::NameTaken => {
+                        Menu::send_message(&mut cloned_stream, "That name is already in use.\n")?;
+                    }
+                    JoinResult::GameFull => {
+                        Menu::send_message(&mut cloned_stream, "That game is full.\n")?;
+                        break;
+                    }
+                }
             }
         }
         
@@ -194,18 +235,16 @@ fn player_listener(mut stream: TcpStream, tx: mpsc::Sender<PlayerRequest>, menu:
 fn main() -> Result<()> {    
     let tcp_endpoint = "0.0.0.0:5000";
     let listener = TcpListener::bind(tcp_endpoint)?;
-    let (tx, rx) = mpsc::channel::<PlayerRequest>();
 
     let mut menu = Arc::new(Mutex::new(Menu {current_game_ids: HashSet::new(), current_games: HashMap::new()}));
 
     // spawn a handling thread for each incoming connection
     for incoming in listener.incoming() {
         let stream = incoming?;
-        let tx_clone = tx.clone();
         let menu_clone = Arc::clone(&menu);
 
         thread::spawn(move || {
-            player_listener(stream, tx_clone, menu_clone);
+            player_listener(stream, menu_clone);
         });
     }
 
