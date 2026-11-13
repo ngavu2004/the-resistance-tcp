@@ -7,7 +7,7 @@
 </head>
 <body>
   <h1>The Resistance</h1>
-
+  <h3>(Sorry Im not the best in html)</h3>
   <button id="connect">Connect</button>
   <pre id="messages"></pre>
 
@@ -21,7 +21,7 @@
     const log = document.getElementById("messages");
 
     document.getElementById("connect").onclick = () => {
-      socket = new WebSocket("ws://localhost:8080");
+      socket = new WebSocket("ws://201.79.40.73:8080");
 
       socket.onopen = () => {
         log.textContent += "Connected!\n";
