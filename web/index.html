@@ -21,10 +21,8 @@
     const log = document.getElementById("messages");
 
     document.getElementById("connect").onclick = () => {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-
       socket = new WebSocket(
-          `${wss}//201.79.40.73/ws`
+          `ws://${window.location.hostname}:8080`
       );
 
       socket.onopen = () => {
